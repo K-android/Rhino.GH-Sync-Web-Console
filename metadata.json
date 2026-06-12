@@ -1,0 +1,6 @@
+{
+  "name": "Rhino.Compute Parametric Console",
+  "description": "An interactive parametric 3D design console modeling the real-time Grasshopper, Hops, and Rhino.Compute cloud server architecture.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
