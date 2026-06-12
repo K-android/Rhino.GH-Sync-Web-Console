@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ComputeResponseMesh, ComputeResponseLine } from '../types';
-import { Lightbulb, Sun, Maximize2, RotateCcw } from 'lucide-react';
+import { Lightbulb, Sun, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 
 interface ThreeCanvasProps {
   meshData: ComputeResponseMesh | null;
@@ -16,6 +16,8 @@ interface ThreeCanvasProps {
   loading: boolean;
   modelType: 'facade' | 'canopy' | 'bridge';
   analysisType: 'solar' | 'stress' | 'cost';
+  isViewportExpanded?: boolean;
+  onToggleViewportExpanded?: () => void;
 }
 
 export default function ThreeCanvas({
@@ -24,7 +26,9 @@ export default function ThreeCanvas({
   sunAngle,
   loading,
   modelType,
-  analysisType
+  analysisType,
+  isViewportExpanded = false,
+  onToggleViewportExpanded
 }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -340,6 +344,27 @@ export default function ThreeCanvas({
           <RotateCcw className="w-3 h-3" />
           Reset Cam
         </button>
+
+        {onToggleViewportExpanded && (
+          <button
+            onClick={onToggleViewportExpanded}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase font-mono font-semibold bg-zinc-900/90 border border-sky-500/30 text-sky-400 hover:text-sky-300 hover:border-sky-500 hover:bg-sky-950/20 rounded-lg transition-all duration-150 shadow-lg"
+            title={isViewportExpanded ? "Minimize Viewport" : "Maximize Viewport"}
+            id="btn_toggle_viewport_expand"
+          >
+            {isViewportExpanded ? (
+              <>
+                <Minimize2 className="w-3 h-3 text-sky-400" />
+                Minimize View
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3 h-3 text-zinc-400" />
+                Maximize View
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Floating 3D graphics canvas stats */}

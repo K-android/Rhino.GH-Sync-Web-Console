@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ThreeCanvas from './components/ThreeCanvas';
 import ParamsSidebar from './components/ParamsSidebar';
 import GrasshopperGraph from './components/GrasshopperGraph';
@@ -66,6 +66,64 @@ export default function App() {
   ]);
 
   const [activeTab, setActiveTab] = useState<'graph' | 'json' | 'perf' | 'logs'>('graph');
+
+  // 3. User Layout Resizing States
+  const [sidebarWidth, setSidebarWidth] = useState<number>(350);
+  const [devPanelHeight, setDevPanelHeight] = useState<number>(280);
+  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+  const [isResizing, setIsResizing] = useState<'sidebar' | 'panel' | null>(null);
+  const [isViewportExpanded, setIsViewportExpanded] = useState<boolean>(false);
+
+  const isDraggingSidebar = useRef<boolean>(false);
+  const isDraggingDevPanel = useRef<boolean>(false);
+
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDraggingSidebar.current) {
+        const newWidth = Math.max(240, Math.min(600, e.clientX));
+        setSidebarWidth(newWidth);
+      } else if (isDraggingDevPanel.current) {
+        const windowHeight = window.innerHeight;
+        // The bottom panel's height is precisely the distance from the bottom of the window to the cursor
+        const newHeight = Math.max(160, Math.min(windowHeight - 200, windowHeight - e.clientY));
+        setDevPanelHeight(newHeight);
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      isDraggingSidebar.current = false;
+      isDraggingDevPanel.current = false;
+      setIsResizing(null);
+    };
+
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, []);
+
+  const handleSidebarMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingSidebar.current = true;
+    setIsResizing('sidebar');
+  };
+
+  const handleDevPanelMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingDevPanel.current = true;
+    setIsResizing('panel');
+  };
 
   // Multi-render throttling/debouncing to prevent Express server thrashing during active dragging
   const prevParamsRef = useRef<string>('');
@@ -159,7 +217,15 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans" id="rhino_compute_dashboard">
+    <div className={`min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans ${isResizing ? 'select-none' : ''}`} id="rhino_compute_dashboard">
+      {/* 1. SEAMLESS EVENT CAPTURING BACKDROP FOR DRAGGING */}
+      {isResizing && (
+        <div 
+          className="fixed inset-0 z-[9999] opacity-0 select-none pointer-events-auto"
+          style={{ cursor: isResizing === 'sidebar' ? 'col-resize' : 'row-resize' }}
+        />
+      )}
+
       {/* 1. PROFESSIONAL CAD HEADER BAR */}
       <header className="border-b border-zinc-900 bg-zinc-900/80 backdrop-blur-md px-6 py-3.5 flex items-center justify-between z-20">
         <div className="flex items-center gap-3">
@@ -197,31 +263,48 @@ export default function App() {
       </header>
 
       {/* 2. CORE WORKSPACE */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden lg:h-[calc(100vh-65px)] h-auto">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden lg:h-[calc(100vh-65px)] h-auto custom-scrollbar">
         
         {/* Left Side: Control sliders list */}
-        <aside className="w-full lg:w-[350px] shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-900/30 p-4 overflow-visible lg:overflow-hidden h-auto lg:h-full">
-          <ParamsSidebar
-            modelType={modelType}
-            setModelType={setModelType}
-            analysisType={analysisType}
-            setAnalysisType={setAnalysisType}
-            facadeParams={facadeParams}
-            setFacadeParams={setFacadeParams}
-            canopyParams={canopyParams}
-            setCanopyParams={setCanopyParams}
-            bridgeParams={bridgeParams}
-            setBridgeParams={setBridgeParams}
-            sunAngle={sunAngle}
-            setSunAngle={setSunAngle}
-          />
-        </aside>
+        {!isViewportExpanded && (
+          <aside 
+            style={isDesktop ? { width: `${sidebarWidth}px`, flexShrink: 0 } : {}}
+            className="w-full shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-900/30 p-4 overflow-visible lg:overflow-auto h-auto lg:h-full select-none"
+          >
+            <ParamsSidebar
+              modelType={modelType}
+              setModelType={setModelType}
+              analysisType={analysisType}
+              setAnalysisType={setAnalysisType}
+              facadeParams={facadeParams}
+              setFacadeParams={setFacadeParams}
+              canopyParams={canopyParams}
+              setCanopyParams={setCanopyParams}
+              bridgeParams={bridgeParams}
+              setBridgeParams={setBridgeParams}
+              sunAngle={sunAngle}
+              setSunAngle={setSunAngle}
+            />
+          </aside>
+        )}
+
+        {/* Vertical Resizer Handle */}
+        {isDesktop && !isViewportExpanded && (
+          <div
+            onMouseDown={handleSidebarMouseDown}
+            className="hidden lg:block w-3 bg-transparent cursor-col-resize h-full shrink-0 z-30 transition-all group relative -mx-1.5"
+            title="Drag to resize sidebar"
+          >
+            {/* Visual indicator line inside */}
+            <div className={`absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1.5px] h-full transition-colors duration-150 ${isResizing === 'sidebar' ? 'bg-sky-400' : 'bg-zinc-800 group-hover:bg-sky-400/80'}`}></div>
+          </div>
+        )}
 
         {/* Center: Split View (3D viewport at top, developer monitors at bottom) */}
-        <main className="flex-1 flex flex-col overflow-hidden min-w-0 lg:h-full">
+        <main className="flex-1 flex flex-col overflow-visible lg:overflow-hidden min-w-0 lg:h-full">
           
           {/* Top Panel: Gorgeous 3D graphics Canvas */}
-          <section className="h-[320px] sm:h-[400px] lg:h-auto lg:flex-1 min-h-[240px] lg:min-h-0 p-4 relative" id="three_stage">
+          <section className={`flex-1 min-h-0 relative flex flex-col transition-all duration-300 ${isViewportExpanded ? 'p-0 h-[calc(100vh-65px)] lg:h-full' : 'h-[320px] sm:h-[400px] lg:h-0 lg:flex-1 min-h-[240px] lg:min-h-0 p-4'}`} id="three_stage">
             <ThreeCanvas
               meshData={apiResponse ? apiResponse.data.mesh : null}
               lineData={apiResponse ? apiResponse.data.lines : undefined}
@@ -229,11 +312,29 @@ export default function App() {
               loading={loading}
               modelType={modelType}
               analysisType={analysisType}
+              isViewportExpanded={isViewportExpanded}
+              onToggleViewportExpanded={() => setIsViewportExpanded(!isViewportExpanded)}
             />
           </section>
 
+          {/* Horizontal Resizer Handle */}
+          {isDesktop && !isViewportExpanded && (
+            <div
+              onMouseDown={handleDevPanelMouseDown}
+              className="hidden lg:block h-3 bg-transparent cursor-row-resize w-full shrink-0 z-30 transition-all group relative -my-1.5"
+              title="Drag to resize panel"
+            >
+              {/* Visual indicator line inside */}
+              <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1.5px] w-full transition-colors duration-150 ${isResizing === 'panel' ? 'bg-sky-400' : 'bg-zinc-800 group-hover:bg-sky-400/80'}`}></div>
+            </div>
+          )}
+
           {/* Bottom Panel: Developer analysis control dashboard (Tabbed View) */}
-          <section className="h-[340px] lg:h-[280px] border-t border-zinc-900 bg-zinc-900 p-4 flex flex-col overflow-hidden z-10 shrink-0">
+          {!isViewportExpanded && (
+            <section 
+              style={isDesktop ? { height: `${devPanelHeight}px` } : {}}
+              className="relative border-t border-zinc-900 bg-zinc-900 p-4 pt-5 flex flex-col overflow-hidden z-20 shrink-0"
+            >
             {/* Developer tabs header selection */}
             <div className="flex items-center justify-between border-b border-zinc-850 pb-2 mb-3">
               <div className="flex gap-1.5" id="developer_tabs">
@@ -337,7 +438,8 @@ export default function App() {
               )}
             </div>
           </section>
-        </main>
+        )}
+      </main>
       </div>
     </div>
   );
