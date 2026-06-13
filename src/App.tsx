@@ -113,14 +113,14 @@ export default function App() {
           const data = {
              Inputs: [
                { Name: 'RotationAngle', Default: 45, Minimum: -180, Maximum: 180 },
-               { Name: 'OffsetDistance', Default: 2, Minimum: -10, Maximum: 10 },
+               { Name: 'OffsetDistance', Default: 500, Minimum: -2000, Maximum: 5000 },
                { Name: 'PopulationCount', Default: 10, Minimum: 1, Maximum: 100 },
-               { Name: 'MaxExtrudeZ', Default: 10, Minimum: 0.1, Maximum: 50 },
-               { Name: 'MinExtrudeZ', Default: 2, Minimum: 0.1, Maximum: 50 },
-               { Name: 'MaxMoveZ', Default: 5, Minimum: -20, Maximum: 20 },
-               { Name: 'MinMoveZ', Default: 0, Minimum: -20, Maximum: 20 },
-               { Name: 'MaxXSize', Default: 10, Minimum: 0.1, Maximum: 50 },
-               { Name: 'MaxYSize', Default: 10, Minimum: 0.1, Maximum: 50 }
+               { Name: 'MaxExtrudeZ', Default: 6000, Minimum: 100, Maximum: 20000 },
+               { Name: 'MinExtrudeZ', Default: 3000, Minimum: 100, Maximum: 20000 },
+               { Name: 'MaxMoveZ', Default: 5000, Minimum: -10000, Maximum: 20000 },
+               { Name: 'MinMoveZ', Default: 0, Minimum: -10000, Maximum: 20000 },
+               { Name: 'MaxXSize', Default: 3000, Minimum: 100, Maximum: 20000 },
+               { Name: 'MaxYSize', Default: 4000, Minimum: 100, Maximum: 20000 }
             ]
           };
           setIoSchema(data.Inputs);
