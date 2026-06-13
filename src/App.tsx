@@ -208,9 +208,9 @@ export default function App() {
     const startRequest = performance.now();
 
     // Log the packet sending
-    const logParams = Object.entries(dynamicParams).map(([k, v]) => `${k}=${v}`).join(', ');
+    const logParams = JSON.stringify({ values: payload.values });
 
-    addLog('info', `POST /grasshopper sending dynamic payload: { ${logParams} }`);
+    addLog('info', `POST /grasshopper sending dynamic payload: ${logParams}`);
 
     try {
       let targetUrl = import.meta.env.VITE_RHINO_COMPUTE_URL || 'https://ruckus-ominous-delicious.ngrok-free.dev';
