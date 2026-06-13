@@ -71,27 +71,23 @@ export default function App() {
     const fetchSchema = async () => {
       try {
         addLog('info', 'Connecting to Grasshopper endpoint to retrieve IO schema...');
-        let targetUrl = import.meta.env.VITE_RHINO_COMPUTE_URL || 'https://ruckus-ominous-delicious.ngrok-free.dev';
         
-        if (targetUrl.startsWith('http')) {
-          targetUrl = targetUrl.replace(/\/$/, '');
-          if (!targetUrl.endsWith('/io')) {
-             targetUrl = targetUrl.replace('/grasshopper', '') + '/io';
-          }
-        } else {
-          targetUrl = '/api/io'; // Local backend fallback
-        }
-
+        const externalUrl = import.meta.env.VITE_RHINO_COMPUTE_URL || 'https://ruckus-ominous-delicious.ngrok-free.dev';
+        
+        let targetUrl = '/api/io'; // ALWAYS proxy through backend to avoid CORS
+        
         const response = await fetch(targetUrl, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
           },
-          body: JSON.stringify({ pointer: "C:/Users/User/Desktop/web-configurator.gh" })
+          body: JSON.stringify({ 
+            pointer: "C:/Users/User/Desktop/web-configurator.gh",
+            externalUrl
+          })
         });
 
-        if (!response.ok) throw new Error('Failed to fetch IO Schema');
+        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
         
         const data = await response.json();
         if (data && data.Inputs) {
@@ -104,12 +100,20 @@ export default function App() {
            setDynamicParams(initialParams);
            setSchemaFetched(true);
            addLog('success', `Dynamic Schema loaded containing ${data.Inputs.length} parameters`);
+        } else {
+           throw new Error('Invalid schema format returned');
         }
       } catch(err: any) {
         // Fallback to our dummy server just in case ngrok fails
         try {
-          const response = await fetch('/api/io', { method: 'POST' });
+          const response = await fetch('/api/io', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const data = await response.json();
+          if (!data || !data.Inputs) throw new Error('Invalid data format from /api/io');
           setIoSchema(data.Inputs);
           const initialParams: Record<string, number> = {};
           data.Inputs.forEach((input: any) => {
@@ -119,8 +123,8 @@ export default function App() {
           setDynamicParams(initialParams);
           setSchemaFetched(true);
           addLog('warning', `ngrok unreachable or CORS failed, falling back to local simulation backend schema`);
-        } catch (_) {
-          addLog('error', `Failed to retrieve dynamic Grasshopper schema IO`);
+        } catch (innerErr: any) {
+          addLog('error', `Failed to retrieve dynamic Grasshopper schema IO: ${innerErr.message || innerErr}`);
         }
       }
     };

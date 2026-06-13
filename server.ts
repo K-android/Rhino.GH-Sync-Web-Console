@@ -59,15 +59,38 @@ async function startServer() {
     }
   });
 
-  app.post('/api/io', (req, res) => {
+  app.post('/api/io', async (req, res) => {
+    try {
+      const { externalUrl, pointer } = req.body;
+      if (externalUrl && externalUrl.startsWith('http')) {
+        let targetUrl = externalUrl.replace(/\/$/, '');
+        if (!targetUrl.endsWith('/io')) {
+          targetUrl = targetUrl.replace('/grasshopper', '') + '/io';
+        }
+        const resp = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+          body: JSON.stringify({ pointer })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          return res.json(data);
+        }
+        console.log('Remote IO fetch failed:', resp.status, 'falling back...');
+      }
+    } catch (err) {
+      console.log('Remote IO fetch unavailable, falling back to local simulation schema.');
+    }
+    
+    // Fallback to fake data
     return res.json({
       Description: "Web Configurator Grasshopper Script",
       Inputs: [
         { Name: "RotationAngle", Default: 45, Minimum: -180, Maximum: 180 },
         { Name: "OffsetDistance", Default: 2.0, Minimum: -10, Maximum: 10 },
         { Name: "PopulationCount", Default: 10, Minimum: 1, Maximum: 100 },
-        { Name: "MaxExtrudeZ", Default: 10.0, Minimum: 0, Maximum: 50 },
-        { Name: "MinExtrudeZ", Default: 2.0, Minimum: 0, Maximum: 50 },
+        { Name: "MaxExtrudeZ", Default: 10.0, Minimum: 0.1, Maximum: 50 },
+        { Name: "MinExtrudeZ", Default: 2.0, Minimum: 0.1, Maximum: 50 },
         { Name: "MaxMoveZ", Default: 5.0, Minimum: -20, Maximum: 20 },
         { Name: "MinMoveZ", Default: 0.0, Minimum: -20, Maximum: 20 },
         { Name: "MaxXSize", Default: 10.0, Minimum: 0.1, Maximum: 50 },
