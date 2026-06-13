@@ -263,12 +263,37 @@ export default function App() {
         durationSum = performance.now() - startRequest;
       }
 
-      setApiResponse(resData);
+      let finalData = resData;
+
+      // Detect if this is a raw Rhino.Compute response
+      if (resData && resData.values) {
+        addLog('info', `Received real Rhino Compute response containing ${resData.values.length} outputs.`);
+        
+        let meshSize = 0;
+        const resultGeo = resData.values.find((v: any) => v.ParamName === 'ResultGeometry');
+        
+        if (resultGeo) {
+           meshSize = JSON.stringify(resultGeo.InnerTree).length;
+           addLog('success', `Found "ResultGeometry" output node in payload. Size: ${(meshSize/1024).toFixed(1)} KB`);
+        }
+        
+        // Wrap it so our CodeViewer still shows it, but we won't crash GrasshopperGraph
+        finalData = {
+           isRealRhinoCompute: true,
+           solverTimeMs: durationSum,
+           values: resData.values,
+           data: {
+              mesh: null // We don't have rhino3dm installed in this project to decode it yet
+           }
+        };
+      }
+
+      setApiResponse(finalData);
       
-      const vertexCount = resData.data?.mesh?.vertices?.length ? Math.floor(resData.data.mesh.vertices.length / 3) : 0;
+      const vertexCount = finalData.data?.mesh?.vertices?.length ? Math.floor(finalData.data.mesh.vertices.length / 3) : 0;
       addLog(
         'success',
-        `Response 200 Received: Generated ${vertexCount} vertices in ${resData.solverTimeMs || 0}ms (Network RTT: ${durationSum.toFixed(0)}ms)`
+        `Response 200 Received: Generated computation in ${durationSum.toFixed(0)}ms.`
       );
     } catch (err: any) {
       console.error(err);
