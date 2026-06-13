@@ -9,6 +9,7 @@ import ParamsSidebar from './components/ParamsSidebar';
 import GrasshopperGraph from './components/GrasshopperGraph';
 import CodeViewer from './components/CodeViewer';
 import TelemetryChart from './components/TelemetryChart';
+import GuideModal from './components/GuideModal';
 import {
   ModelType,
   AnalysisType,
@@ -18,7 +19,7 @@ import {
   ComputeResponse,
   ConsoleLog
 } from './types';
-import { Hammer, Terminal, Wifi, Cloud, ExternalLink, Moon } from 'lucide-react';
+import { Hammer, Terminal, Wifi, Cloud, ExternalLink, Moon, HelpCircle } from 'lucide-react';
 
 export default function App() {
   // 1. Core States matching Hops sliders
@@ -73,6 +74,7 @@ export default function App() {
   const [isDesktop, setIsDesktop] = useState<boolean>(false);
   const [isResizing, setIsResizing] = useState<'sidebar' | 'panel' | null>(null);
   const [isViewportExpanded, setIsViewportExpanded] = useState<boolean>(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState<boolean>(false);
 
   const isDraggingSidebar = useRef<boolean>(false);
   const isDraggingDevPanel = useRef<boolean>(false);
@@ -244,6 +246,15 @@ export default function App() {
 
         {/* Server & connection state */}
         <div className="flex items-center gap-4">
+          {/* Guide Button */}
+          <button 
+            onClick={() => setIsGuideModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-lg text-xs font-medium transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Integration Guide</span>
+          </button>
+
           {/* Socket Indicator */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-zinc-950 border border-zinc-900 rounded-full text-[11px] font-mono">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -261,6 +272,12 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Guide Modal Overlay */}
+      <GuideModal 
+        isOpen={isGuideModalOpen} 
+        onClose={() => setIsGuideModalOpen(false)} 
+      />
 
       {/* 2. CORE WORKSPACE */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden lg:h-[calc(100vh-65px)] h-auto custom-scrollbar">
