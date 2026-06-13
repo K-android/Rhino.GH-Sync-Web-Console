@@ -189,7 +189,14 @@ export default function App() {
       pointer: "C:/Users/User/OneDrive/Desktop/web-configurator.gh", // specific to the user's setup
       values: Object.entries(dynamicParams).map(([key, value]) => ({
         ParamName: key,
-        InnerTree: { "{0}": [{ data: value }] }
+        InnerTree: { 
+          "{ 0; }": [
+            { 
+              type: "System.Double", 
+              data: value 
+            }
+          ] 
+        }
       }))
     };
 
