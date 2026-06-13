@@ -36,7 +36,7 @@ export default function GrasshopperGraph({
             Grasshopper Graph
           </div>
           <h4 className="text-xs font-mono font-medium text-zinc-200">
-            {modelType === 'facade' ? 'double_curved_facade_panelizer.gh' : modelType === 'canopy' ? 'braced_hex_vault_generator.gh' : 'suspension_arch_truss_weaver.gh'}
+            web-configurator.gh
           </h4>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
@@ -75,22 +75,22 @@ export default function GrasshopperGraph({
         {/* Visual node layouts grouped in standard Canvas columns */}
         <div className="flex justify-between items-stretch w-full gap-5 z-10 select-none min-w-[540px]">
           
-          {/* Column 1: Active Sliders (Hops inputs) */}
+          {/* Column 1: Active Sliders (REST inputs) */}
           <div className="flex flex-col justify-around gap-4 w-40">
             <div className="text-[10px] font-mono text-zinc-550 uppercase font-semibold text-center pb-1 border-b border-zinc-950 mb-1">
-              Hops API Inputs
+              Compute IO Schema Params
             </div>
 
             {/* Render dynamic inputs based on modelType */}
-            {Object.entries(params).slice(0, 3).map(([key, val]) => (
+            {Object.entries(params).filter(([key]) => key !== 'sunAngle').slice(0, 3).map(([key, val]) => (
               <div 
                 key={key} 
                 className="bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 flex flex-col group hover:border-sky-500 transition-all shadow-lg"
                 id={`gh_node_input_${key}`}
               >
                 <div className="flex justify-between items-center text-[9px] font-mono text-sky-400 font-bold uppercase tracking-wide">
-                  <span>{formatLabel(key)}</span>
-                  <span className="bg-sky-500/10 text-sky-300 px-1 rounded">{key === 'twist' || key === 'archTwist' ? `${val}°` : val}</span>
+                  <span className="truncate mr-2">{formatLabel(key)}</span>
+                  <span className="bg-sky-500/10 text-sky-300 px-1 rounded">{Number(val).toFixed(0)}</span>
                 </div>
                 <div className="w-full bg-zinc-950 rounded h-1.5 mt-1.5 overflow-hidden">
                   <div 
@@ -127,11 +127,11 @@ export default function GrasshopperGraph({
                 <div className="flex items-center gap-1.5">
                   <Cpu className="text-emerald-400 w-3 h-3" />
                   <span className="text-[10px] font-mono font-bold text-zinc-200 uppercase tracking-tight">
-                    {modelType === 'facade' ? 'Sine Evaluator' : modelType === 'canopy' ? 'Hex Grid Dome' : modelType === 'bridge' ? 'Parabola Deck' : 'Custom Configurator Engine'}
+                    Custom Configurator Engine
                   </span>
                 </div>
                 <span className="text-[8px] font-mono bg-emerald-500/20 text-emerald-300 px-1 py-0.5 rounded">
-                  {getTiming(modelType === 'facade' ? 'sine_waves' : modelType === 'canopy' ? 'hex_grid' : modelType === 'bridge' ? 'arch_weaver' : 'web_configurator', 3)}
+                  {getTiming('web_configurator', 3)}
                 </span>
               </div>
               
@@ -159,7 +159,7 @@ export default function GrasshopperGraph({
               <div className="bg-zinc-950 border-b border-zinc-850 p-1.5 flex justify-between items-center">
                 <span className="text-[9px] font-mono font-bold text-zinc-300 uppercase">Analysis Mapper</span>
                 <span className="text-[8px] font-mono text-zinc-400 font-medium">
-                  {getTiming(modelType === 'facade' ? 'solar_radiation' : modelType === 'canopy' ? 'truss' : 'deflection', 2)}
+                  {getTiming('solar_radiation', 2)}
                 </span>
               </div>
               <div className="p-1.5 text-[9px] font-mono text-zinc-500 flex justify-between">
@@ -169,7 +169,7 @@ export default function GrasshopperGraph({
             </div>
           </div>
 
-          {/* Column 3: Hops serialization outputs */}
+          {/* Column 3: Serialization outputs */}
           <div className="flex flex-col justify-center gap-6 w-40">
             <div className="text-[10px] font-mono text-zinc-550 uppercase font-semibold text-center pb-1 border-b border-zinc-950 mb-1">
               Serialization Ports
@@ -183,7 +183,7 @@ export default function GrasshopperGraph({
               <div className="bg-sky-950/40 border-b border-zinc-850 p-1.5 flex justify-between items-center">
                 <span className="text-[9px] font-mono font-bold text-sky-400 uppercase">Mesh Loft / Cap</span>
                 <span className="text-[8px] font-mono bg-sky-500/10 text-sky-300 px-1 rounded">
-                  {getTiming(modelType === 'facade' ? 'panelizer' : modelType === 'canopy' ? 'mesh_cap' : modelType === 'bridge' ? 'deck_generator' : 'mesh_output', 4)}
+                  {getTiming('mesh_output', 4)}
                 </span>
               </div>
               <div className="p-2 text-[9px] font-mono text-zinc-500 flex justify-between">
@@ -201,7 +201,7 @@ export default function GrasshopperGraph({
               id="gh_node_output"
             >
               <div className="bg-sky-950/20 p-2 flex justify-between items-center border-b border-zinc-855">
-                <span className="text-[9px] font-mono font-bold text-sky-300 uppercase">Hops Output JSON</span>
+                <span className="text-[9px] font-mono font-bold text-sky-300 uppercase">Compute Output JSON</span>
                 <span className="text-[8px] font-mono text-zinc-400">{getTiming('json_serialize', 0.9)}</span>
               </div>
               <div className="p-2.5 flex items-center justify-between text-[9px] font-mono text-zinc-400">
@@ -227,48 +227,12 @@ export default function GrasshopperGraph({
 }
 
 function formatLabel(key: string): string {
-  switch (key) {
-    case 'width': return 'Facade Width';
-    case 'height': return 'Facade Height';
-    case 'panelWidth': return 'Panel Width';
-    case 'panelHeight': return 'Panel Height';
-    case 'waveAmplitude': return 'Wave Amplitude';
-    case 'waveFrequency': return 'Wave Frequency';
-    case 'twist': return 'Panel Twist';
-    case 'span': return 'Canopy Span';
-    case 'segments': return 'Grid Segments';
-    case 'sag': return 'Dome Sag';
-    case 'aperture': return 'Cell Aperture';
-    case 'depth': return 'Truss Depth';
-    case 'bridgeSpan': return 'Bridge Span';
-    case 'archHeight': return 'Arch Height';
-    case 'deckWidth': return 'Deck Width';
-    case 'cableCount': return 'Cable Count';
-    case 'archTwist': return 'Arch Outward Twist';
-    default: return key;
-  }
+  // If no explicit case, split camelCase
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase()).trim();
 }
 
 // Convert Slider value to simple percentages for visualization
 function getSliderPercent(key: string, val: number): number {
-  switch (key) {
-    case 'width': return (val / 100) * 100;
-    case 'height': return (val / 100) * 100;
-    case 'panelWidth': return (val / 5) * 100;
-    case 'panelHeight': return (val / 5) * 100;
-    case 'waveAmplitude': return (val / 10) * 100;
-    case 'waveFrequency': return (val / 2) * 100;
-    case 'twist': return ((val + 45) / 90) * 100;
-    case 'span': return (val / 80) * 100;
-    case 'segments': return (val / 16) * 100;
-    case 'sag': return (val / 15) * 100;
-    case 'aperture': return (val) * 100;
-    case 'depth': return (val / 5) * 100;
-    case 'bridgeSpan': return (val / 100) * 100;
-    case 'archHeight': return (val / 30) * 100;
-    case 'deckWidth': return (val / 12) * 100;
-    case 'cableCount': return (val / 30) * 100;
-    case 'archTwist': return ((val + 20) / 40) * 100;
-    default: return 50;
-  }
+  // Simple deterministic hash based on string length and val to show dynamic bars
+  return Math.abs(Math.sin((key.length * val) || 1) * 100) || 50;
 }

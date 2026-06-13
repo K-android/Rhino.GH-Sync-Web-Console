@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AnalysisType, ConfiguratorParams } from '../types';
-import { Layers, HelpCircle, Sun, Sliders, Activity, Info } from 'lucide-react';
+import { AnalysisType } from '../types';
+import { HelpCircle, Sun, Sliders, Activity, Info } from 'lucide-react';
 
 interface ParamsSidebarProps {
   analysisType: AnalysisType;
   setAnalysisType: (type: AnalysisType) => void;
-  configuratorParams: ConfiguratorParams;
-  setConfiguratorParams: (params: ConfiguratorParams) => void;
+  ioSchema: any[];
+  dynamicParams: Record<string, number>;
+  setDynamicParams: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   sunAngle: number;
   setSunAngle: (angle: number) => void;
 }
@@ -18,14 +19,15 @@ interface ParamsSidebarProps {
 export default function ParamsSidebar({
   analysisType,
   setAnalysisType,
-  configuratorParams,
-  setConfiguratorParams,
+  ioSchema,
+  dynamicParams,
+  setDynamicParams,
   sunAngle,
   setSunAngle
 }: ParamsSidebarProps) {
 
-  const handleConfiguratorChange = (key: keyof ConfiguratorParams, val: number) => {
-    setConfiguratorParams({ ...configuratorParams, [key]: val });
+  const handleParamChange = (key: string, val: number) => {
+    setDynamicParams(prev => ({ ...prev, [key]: val }));
   };
 
   return (
@@ -38,158 +40,32 @@ export default function ParamsSidebar({
         </label>
 
         <div className="space-y-4 font-mono text-xs">
-          {/* Rotation Angle */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Rotation Angle</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.rotationAngle}°</span>
-            </div>
-            <input
-              type="range"
-              min="-180"
-              max="180"
-              step="5"
-              value={configuratorParams.rotationAngle}
-              onChange={(e) => handleConfiguratorChange('rotationAngle', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Offset Distance */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Offset Distance</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.offsetDistance.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min="-10"
-              max="10"
-              step="0.1"
-              value={configuratorParams.offsetDistance}
-              onChange={(e) => handleConfiguratorChange('offsetDistance', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Population Count */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Population Count</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.populationCount}</span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="100"
-              step="1"
-              value={configuratorParams.populationCount}
-              onChange={(e) => handleConfiguratorChange('populationCount', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Max Extrude Z */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Max Extrude Z</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.maxExtrudeZ.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              step="0.5"
-              value={configuratorParams.maxExtrudeZ}
-              onChange={(e) => handleConfiguratorChange('maxExtrudeZ', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Min Extrude Z */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Min Extrude Z</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.minExtrudeZ.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              step="0.5"
-              value={configuratorParams.minExtrudeZ}
-              onChange={(e) => handleConfiguratorChange('minExtrudeZ', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Max Move Z */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Max Move Z</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.maxMoveZ.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min="-20"
-              max="20"
-              step="0.5"
-              value={configuratorParams.maxMoveZ}
-              onChange={(e) => handleConfiguratorChange('maxMoveZ', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Min Move Z */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Min Move Z</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.minMoveZ.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min="-20"
-              max="20"
-              step="0.5"
-              value={configuratorParams.minMoveZ}
-              onChange={(e) => handleConfiguratorChange('minMoveZ', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Max X Size */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Max X Size</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.maxXSize.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min="0.1"
-              max="50"
-              step="0.5"
-              value={configuratorParams.maxXSize}
-              onChange={(e) => handleConfiguratorChange('maxXSize', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
-
-          {/* Max Y Size */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="font-medium text-zinc-200">Max Y Size</span>
-              <span className="text-sky-400 font-bold">{configuratorParams.maxYSize.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min="0.1"
-              max="50"
-              step="0.5"
-              value={configuratorParams.maxYSize}
-              onChange={(e) => handleConfiguratorChange('maxYSize', Number(e.target.value))}
-              className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
-            />
-          </div>
+          {ioSchema.length === 0 && (
+             <div className="text-zinc-500 text-center py-4 bg-zinc-950/50 rounded flex flex-col items-center gap-2">
+               <span className="w-4 h-4 border-2 border-sky-500/30 border-t-sky-500 rounded-full animate-spin"></span>
+               Fetching IO schema from Grasshopper definition...
+             </div>
+          )}
+          {ioSchema.map((inputEl, idx) => {
+            const val = dynamicParams[inputEl.Name] ?? (inputEl.Default || 0);
+            return (
+              <div key={idx} className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span className="font-medium text-zinc-200" title={inputEl.Description}>{inputEl.Nickname || inputEl.Name}</span>
+                  <span className="text-sky-400 font-bold">{Number(val).toFixed(1)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={inputEl.Minimum !== undefined ? inputEl.Minimum : 0}
+                  max={inputEl.Maximum !== undefined ? inputEl.Maximum : 100}
+                  step={0.1}
+                  value={val}
+                  onChange={(e) => handleParamChange(inputEl.Name, Number(e.target.value))}
+                  className="w-full accent-sky-500 bg-zinc-950 rounded-lg cursor-pointer h-1.5"
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

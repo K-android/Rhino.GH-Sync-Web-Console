@@ -27,13 +27,13 @@ export default function CodeViewer({ apiResponse, loading }: CodeViewerProps) {
   // Format request nicely
   const requestPayloadFormatted = JSON.stringify(
     {
-      url: apiResponse.request.endpoint,
+      url: apiResponse.request?.endpoint || '/grasshopper',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer rhino-compute-session-jwt'
       },
-      body: apiResponse.request.params
+      body: apiResponse.request?.params || {}
     },
     null,
     2
@@ -43,19 +43,19 @@ export default function CodeViewer({ apiResponse, loading }: CodeViewerProps) {
   const truncatedResponse = {
     grasshopperGraph: apiResponse.grasshopperGraph,
     solverTimeMs: apiResponse.solverTimeMs,
-    data: {
-      mesh: {
-        vertices: truncateArray(apiResponse.data.mesh.vertices, 12),
-        indices: truncateArray(apiResponse.data.mesh.indices, 15),
-        colors: truncateArray(apiResponse.data.mesh.colors, 12),
-        vertexCount: apiResponse.data.mesh.vertices.length / 3,
-        faceCount: apiResponse.data.mesh.indices.length / 3
-      },
+    data: apiResponse.data ? {
+      mesh: apiResponse.data.mesh ? {
+        vertices: truncateArray(apiResponse.data.mesh.vertices || [], 12),
+        indices: truncateArray(apiResponse.data.mesh.indices || [], 15),
+        colors: truncateArray(apiResponse.data.mesh.colors || [], 12),
+        vertexCount: (apiResponse.data.mesh.vertices?.length || 0) / 3,
+        faceCount: (apiResponse.data.mesh.indices?.length || 0) / 3
+      } : undefined,
       lines: apiResponse.data.lines 
         ? `${apiResponse.data.lines.length} structural cables/chords mapped`
         : undefined,
       telemetry: apiResponse.data.telemetry
-    }
+    } : apiResponse // Fallback to raw response if not matching our mock schema
   };
 
   const responsePayloadFormatted = JSON.stringify(truncatedResponse, null, 2);
@@ -102,7 +102,7 @@ export default function CodeViewer({ apiResponse, loading }: CodeViewerProps) {
             <pre className="whitespace-pre-wrap">{requestPayloadFormatted}</pre>
           </div>
           <div className="p-1.5 bg-zinc-900/40 text-[9px] font-mono text-zinc-500 border-t border-zinc-800/40 shrink-0">
-            Endpoint: /api/compute • Target: Hops Port 3000
+            Endpoint: ngrok /grasshopper • Target: web-configurator.gh
           </div>
         </div>
 

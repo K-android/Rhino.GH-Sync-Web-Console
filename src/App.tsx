@@ -23,21 +23,13 @@ import { Hammer, Terminal, Wifi, Cloud, ExternalLink, Moon, HelpCircle } from 'l
 
 export default function App() {
   // 1. Core States matching Hops sliders
+  // 1. Core States
   const [analysisType, setAnalysisType] = useState<AnalysisType>('solar');
   const [sunAngle, setSunAngle] = useState<number>(45);
 
-  // 1. Core Configurator Params for direct grasshopper link
-  const [configuratorParams, setConfiguratorParams] = useState<ConfiguratorParams>({
-    rotationAngle: 45.0,
-    offsetDistance: 2.0,
-    populationCount: 10,
-    maxExtrudeZ: 10.0,
-    minExtrudeZ: 2.0,
-    maxMoveZ: 5.0,
-    minMoveZ: 0.0,
-    maxXSize: 10.0,
-    maxYSize: 10.0
-  });
+  const [ioSchema, setIoSchema] = useState<any[]>([]);
+  const [dynamicParams, setDynamicParams] = useState<Record<string, number>>({});
+  const [schemaFetched, setSchemaFetched] = useState(false);
 
   // Response solutions from Express /api/compute (the simulated Grasshopper solver)
   const [apiResponse, setApiResponse] = useState<ComputeResponse | null>(null);
@@ -48,7 +40,7 @@ export default function App() {
     {
       timestamp: formatTime(new Date()),
       level: 'success',
-      message: 'Console established. Connected to headless Rhino.Compute node pipeline.'
+      message: 'Console established. Connected to web-configurator.gh via headless Rhino.Compute node.'
     }
   ]);
 
@@ -72,6 +64,68 @@ export default function App() {
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
     return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  // Fetch IO schema once
+  useEffect(() => {
+    const fetchSchema = async () => {
+      try {
+        addLog('info', 'Connecting to Grasshopper endpoint to retrieve IO schema...');
+        let targetUrl = import.meta.env.VITE_RHINO_COMPUTE_URL || 'https://ruckus-ominous-delicious.ngrok-free.dev';
+        
+        if (targetUrl.startsWith('http')) {
+          targetUrl = targetUrl.replace(/\/$/, '');
+          if (!targetUrl.endsWith('/io')) {
+             targetUrl = targetUrl.replace('/grasshopper', '') + '/io';
+          }
+        } else {
+          targetUrl = '/api/io'; // Local backend fallback
+        }
+
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
+          body: JSON.stringify({ pointer: "C:/Users/User/Desktop/web-configurator.gh" })
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch IO Schema');
+        
+        const data = await response.json();
+        if (data && data.Inputs) {
+           setIoSchema(data.Inputs);
+           const initialParams: Record<string, number> = {};
+           data.Inputs.forEach((input: any) => {
+             const defaultVal = input.Default !== undefined ? Number(input.Default) : 0;
+             initialParams[input.Name] = defaultVal;
+           });
+           setDynamicParams(initialParams);
+           setSchemaFetched(true);
+           addLog('success', `Dynamic Schema loaded containing ${data.Inputs.length} parameters`);
+        }
+      } catch(err: any) {
+        // Fallback to our dummy server just in case ngrok fails
+        try {
+          const response = await fetch('/api/io', { method: 'POST' });
+          const data = await response.json();
+          setIoSchema(data.Inputs);
+          const initialParams: Record<string, number> = {};
+          data.Inputs.forEach((input: any) => {
+             const defaultVal = input.Default !== undefined ? Number(input.Default) : 0;
+             initialParams[input.Name] = defaultVal;
+          });
+          setDynamicParams(initialParams);
+          setSchemaFetched(true);
+          addLog('warning', `ngrok unreachable or CORS failed, falling back to local simulation backend schema`);
+        } catch (_) {
+          addLog('error', `Failed to retrieve dynamic Grasshopper schema IO`);
+        }
+      }
+    };
+    
+    fetchSchema();
   }, []);
 
   useEffect(() => {
@@ -121,17 +175,10 @@ export default function App() {
     // Collect active params for Rhino Compute Grasshopper endpoint
     const payload = {
       pointer: "C:/Users/User/Desktop/web-configurator.gh", // specific to the user's setup
-      values: [
-        { ParamName: "RotationAngle", InnerTree: { "{0}": [{ data: configuratorParams.rotationAngle }] } },
-        { ParamName: "OffsetDistance", InnerTree: { "{0}": [{ data: configuratorParams.offsetDistance }] } },
-        { ParamName: "PopulationCount", InnerTree: { "{0}": [{ data: configuratorParams.populationCount }] } },
-        { ParamName: "MaxExtrudeZ", InnerTree: { "{0}": [{ data: configuratorParams.maxExtrudeZ }] } },
-        { ParamName: "MinExtrudeZ", InnerTree: { "{0}": [{ data: configuratorParams.minExtrudeZ }] } },
-        { ParamName: "MaxMoveZ", InnerTree: { "{0}": [{ data: configuratorParams.maxMoveZ }] } },
-        { ParamName: "MinMoveZ", InnerTree: { "{0}": [{ data: configuratorParams.minMoveZ }] } },
-        { ParamName: "MaxXSize", InnerTree: { "{0}": [{ data: configuratorParams.maxXSize }] } },
-        { ParamName: "MaxYSize", InnerTree: { "{0}": [{ data: configuratorParams.maxYSize }] } }
-      ]
+      values: Object.entries(dynamicParams).map(([key, value]) => ({
+        ParamName: key,
+        InnerTree: { "{0}": [{ data: value }] }
+      }))
     };
 
     const payloadString = JSON.stringify(payload);
@@ -142,9 +189,9 @@ export default function App() {
     const startRequest = performance.now();
 
     // Log the packet sending
-    const logParams = `rot=${configuratorParams.rotationAngle}, off=${configuratorParams.offsetDistance}, pop=${configuratorParams.populationCount}, mxZ=${configuratorParams.maxExtrudeZ}, mnZ=${configuratorParams.minExtrudeZ}, mxMz=${configuratorParams.maxMoveZ}, mnMz=${configuratorParams.minMoveZ}, mxX=${configuratorParams.maxXSize}, mxY=${configuratorParams.maxYSize}`;
+    const logParams = Object.entries(dynamicParams).map(([k, v]) => `${k}=${v}`).join(', ');
 
-    addLog('info', `POST /grasshopper sending array payload for web-configurator.gh`);
+    addLog('info', `POST /grasshopper sending dynamic payload: { ${logParams} }`);
 
     try {
       let targetUrl = import.meta.env.VITE_RHINO_COMPUTE_URL || 'https://ruckus-ominous-delicious.ngrok-free.dev';
@@ -162,14 +209,29 @@ export default function App() {
 
       const isExternal = targetUrl.startsWith('http');
       
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: payloadString
-      });
+      let response;
+      try {
+        response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
+          body: payloadString
+        });
+      } catch (externalErr: any) {
+        if (isExternal) {
+          addLog('warning', `Failed to connect to ${targetUrl}, attempting local simulation fallback...`);
+          targetUrl = '/api/compute';
+          response = await fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payloadString
+          });
+        } else {
+          throw externalErr;
+        }
+      }
 
       if (!response.ok) {
         if (response.status === 404 && isExternal) {
@@ -178,14 +240,15 @@ export default function App() {
         throw new Error(`Rhino.Compute Proxy returned ${response.status}`);
       }
 
-      const resData = (await response.json()) as ComputeResponse;
+      const resData = (await response.json()) as any;
       const durationSum = performance.now() - startRequest;
 
       setApiResponse(resData);
       
+      const vertexCount = resData.data?.mesh?.vertices?.length ? Math.floor(resData.data.mesh.vertices.length / 3) : 0;
       addLog(
         'success',
-        `Response 200 Received: Generated ${resData.data.mesh.vertices.length / 3} vertices in ${resData.solverTimeMs}ms (Network RTT: ${durationSum.toFixed(0)}ms)`
+        `Response 200 Received: Generated ${vertexCount} vertices in ${resData.solverTimeMs || 0}ms (Network RTT: ${durationSum.toFixed(0)}ms)`
       );
     } catch (err: any) {
       console.error(err);
@@ -206,13 +269,14 @@ export default function App() {
 
   // Trigger whenever sliders change
   useEffect(() => {
+    if (!schemaFetched) return;
     // Quick timer / debounce to prevent spamming server while sliding fast
     const delayDebounce = setTimeout(() => {
       triggerCompute();
     }, 45); // highly responsive 45ms debounce
 
     return () => clearTimeout(delayDebounce);
-  }, [sunAngle, configuratorParams]);
+  }, [sunAngle, dynamicParams, schemaFetched]);
 
   // Terminal logging helper
   const addLog = (level: 'info' | 'success' | 'warning' | 'error', message: string) => {
@@ -225,8 +289,7 @@ export default function App() {
   };
 
   const getActiveSlidersMap = (): Record<string, number> => {
-    const res: Record<string, number> = { sunAngle };
-    Object.entries(configuratorParams).forEach(([k, v]) => res[k] = v as number);
+    const res: Record<string, number> = { sunAngle, ...dynamicParams };
     return res;
   };
 
@@ -273,7 +336,7 @@ export default function App() {
             <span className="text-zinc-300">CLOUD NODE STATUS:</span>
             <span className="text-emerald-400 font-bold uppercase flex items-center gap-1">
               <Wifi className="w-3.5 h-3.5 inline" />
-              Active (Hops Port 3000)
+              Connected to web-configurator.gh
             </span>
           </div>
 
@@ -303,8 +366,9 @@ export default function App() {
             <ParamsSidebar
               analysisType={analysisType}
               setAnalysisType={setAnalysisType}
-              configuratorParams={configuratorParams}
-              setConfiguratorParams={setConfiguratorParams}
+              ioSchema={ioSchema}
+              dynamicParams={dynamicParams}
+              setDynamicParams={setDynamicParams}
               sunAngle={sunAngle}
               setSunAngle={setSunAngle}
             />
@@ -329,8 +393,8 @@ export default function App() {
           {/* Top Panel: Gorgeous 3D graphics Canvas */}
           <section className={`flex-1 min-h-0 relative flex flex-col transition-all duration-300 ${isViewportExpanded ? 'p-0 h-[calc(100vh-65px)] lg:h-full' : 'h-[320px] sm:h-[400px] lg:h-0 lg:flex-1 min-h-[240px] lg:min-h-0 p-4'}`} id="three_stage">
             <ThreeCanvas
-              meshData={apiResponse ? apiResponse.data.mesh : null}
-              lineData={apiResponse ? apiResponse.data.lines : undefined}
+              meshData={apiResponse && apiResponse.data ? apiResponse.data.mesh : null}
+              lineData={apiResponse && apiResponse.data ? apiResponse.data.lines : undefined}
               sunAngle={sunAngle}
               loading={loading}
               modelType={'configurator' as any}
@@ -420,8 +484,8 @@ export default function App() {
                 <GrasshopperGraph
                   modelType={'configurator' as any}
                   params={getActiveSlidersMap()}
-                  telemetry={apiResponse ? apiResponse.data.telemetry.nodes : undefined}
-                  solverTimeMs={apiResponse ? apiResponse.solverTimeMs : 0}
+                  telemetry={apiResponse && apiResponse.data?.telemetry ? apiResponse.data.telemetry.nodes : undefined}
+                  solverTimeMs={apiResponse ? apiResponse.solverTimeMs || 0 : 0}
                 />
               )}
 
@@ -434,9 +498,9 @@ export default function App() {
 
               {activeTab === 'perf' && (
                 <TelemetryChart
-                  telemetry={apiResponse ? apiResponse.data.telemetry.nodes : undefined}
+                  telemetry={apiResponse && apiResponse.data?.telemetry ? apiResponse.data.telemetry.nodes : undefined}
                   modelType={'configurator' as any}
-                  solverTimeMs={apiResponse ? apiResponse.solverTimeMs : 0}
+                  solverTimeMs={apiResponse ? apiResponse.solverTimeMs || 0 : 0}
                 />
               )}
 

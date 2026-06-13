@@ -59,6 +59,24 @@ async function startServer() {
     }
   });
 
+  app.post('/api/io', (req, res) => {
+    return res.json({
+      Description: "Web Configurator Grasshopper Script",
+      Inputs: [
+        { Name: "RotationAngle", Default: 45, Minimum: -180, Maximum: 180 },
+        { Name: "OffsetDistance", Default: 2.0, Minimum: -10, Maximum: 10 },
+        { Name: "PopulationCount", Default: 10, Minimum: 1, Maximum: 100 },
+        { Name: "MaxExtrudeZ", Default: 10.0, Minimum: 0, Maximum: 50 },
+        { Name: "MinExtrudeZ", Default: 2.0, Minimum: 0, Maximum: 50 },
+        { Name: "MaxMoveZ", Default: 5.0, Minimum: -20, Maximum: 20 },
+        { Name: "MinMoveZ", Default: 0.0, Minimum: -20, Maximum: 20 },
+        { Name: "MaxXSize", Default: 10.0, Minimum: 0.1, Maximum: 50 },
+        { Name: "MaxYSize", Default: 10.0, Minimum: 0.1, Maximum: 50 }
+      ],
+      Outputs: [ { Name: "Preview" } ]
+    });
+  });
+
   // Supporting GET query strings as well for easy debugging (e.g. testing endpoint)
   app.get('/api/compute', (req, res) => {
     try {
