@@ -192,7 +192,7 @@ export default function App() {
         InnerTree: { 
           "{0}": [
             { 
-              type: "System.Double", 
+              type: Number.isInteger(value) ? "System.Int32" : "System.Double", 
               data: value 
             }
           ] 
