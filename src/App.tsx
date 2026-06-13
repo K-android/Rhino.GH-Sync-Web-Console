@@ -190,10 +190,10 @@ export default function App() {
       values: Object.entries(dynamicParams).map(([key, value]) => ({
         ParamName: key,
         InnerTree: { 
-          "{ 0; }": [
+          "{0}": [
             { 
               type: "System.Double", 
-              data: JSON.stringify(value)
+              data: value 
             }
           ] 
         }
