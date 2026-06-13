@@ -23,34 +23,20 @@ import { Hammer, Terminal, Wifi, Cloud, ExternalLink, Moon, HelpCircle } from 'l
 
 export default function App() {
   // 1. Core States matching Hops sliders
-  const [modelType, setModelType] = useState<ModelType>('facade');
   const [analysisType, setAnalysisType] = useState<AnalysisType>('solar');
   const [sunAngle, setSunAngle] = useState<number>(45);
 
-  const [facadeParams, setFacadeParams] = useState<FacadeParams>({
-    width: 40,
-    height: 24,
-    panelWidth: 2,
-    panelHeight: 3,
-    waveAmplitude: 2.5,
-    waveFrequency: 0.3,
-    twist: 15
-  });
-
-  const [canopyParams, setCanopyParams] = useState<CanopyParams>({
-    span: 30,
-    segments: 8,
-    sag: 4,
-    aperture: 0.5,
-    depth: 1.5
-  });
-
-  const [bridgeParams, setBridgeParams] = useState<BridgeParams>({
-    bridgeSpan: 50,
-    archHeight: 14,
-    deckWidth: 6,
-    cableCount: 16,
-    archTwist: 8
+  // 1. Core Configurator Params for direct grasshopper link
+  const [configuratorParams, setConfiguratorParams] = useState<ConfiguratorParams>({
+    rotationAngle: 45.0,
+    offsetDistance: 2.0,
+    populationCount: 10,
+    maxExtrudeZ: 10.0,
+    minExtrudeZ: 2.0,
+    maxMoveZ: 5.0,
+    minMoveZ: 0.0,
+    maxXSize: 10.0,
+    maxYSize: 10.0
   });
 
   // Response solutions from Express /api/compute (the simulated Grasshopper solver)
@@ -130,16 +116,22 @@ export default function App() {
   // Multi-render throttling/debouncing to prevent Express server thrashing during active dragging
   const prevParamsRef = useRef<string>('');
 
-  // 2. Fetch parametric solution from our full-stack Express Grasshopper simulation backend
+  // 2. Fetch parametric solution from our backend / Rhino
   const triggerCompute = async (isManual = false) => {
-    // Collect active params relative to modelType
+    // Collect active params for Rhino Compute Grasshopper endpoint
     const payload = {
-      modelType,
-      analysisType,
-      sunAngle,
-      ...(modelType === 'facade' ? { facadeParams } : {}),
-      ...(modelType === 'canopy' ? { canopyParams } : {}),
-      ...(modelType === 'bridge' ? { bridgeParams } : {})
+      pointer: "C:/Users/User/Desktop/web-configurator.gh", // specific to the user's setup
+      values: [
+        { ParamName: "RotationAngle", InnerTree: { "{0}": [{ data: configuratorParams.rotationAngle }] } },
+        { ParamName: "OffsetDistance", InnerTree: { "{0}": [{ data: configuratorParams.offsetDistance }] } },
+        { ParamName: "PopulationCount", InnerTree: { "{0}": [{ data: configuratorParams.populationCount }] } },
+        { ParamName: "MaxExtrudeZ", InnerTree: { "{0}": [{ data: configuratorParams.maxExtrudeZ }] } },
+        { ParamName: "MinExtrudeZ", InnerTree: { "{0}": [{ data: configuratorParams.minExtrudeZ }] } },
+        { ParamName: "MaxMoveZ", InnerTree: { "{0}": [{ data: configuratorParams.maxMoveZ }] } },
+        { ParamName: "MinMoveZ", InnerTree: { "{0}": [{ data: configuratorParams.minMoveZ }] } },
+        { ParamName: "MaxXSize", InnerTree: { "{0}": [{ data: configuratorParams.maxXSize }] } },
+        { ParamName: "MaxYSize", InnerTree: { "{0}": [{ data: configuratorParams.maxYSize }] } }
+      ]
     };
 
     const payloadString = JSON.stringify(payload);
@@ -150,22 +142,39 @@ export default function App() {
     const startRequest = performance.now();
 
     // Log the packet sending
-    const logParams = modelType === 'facade' 
-      ? `width=${facadeParams.width}, twist=${facadeParams.twist}`
-      : modelType === 'canopy'
-      ? `span=${canopyParams.span}, aperture=${canopyParams.aperture}`
-      : `span=${bridgeParams.bridgeSpan}, twist=${bridgeParams.archTwist}`;
+    const logParams = `rot=${configuratorParams.rotationAngle}, off=${configuratorParams.offsetDistance}, pop=${configuratorParams.populationCount}, mxZ=${configuratorParams.maxExtrudeZ}, mnZ=${configuratorParams.minExtrudeZ}, mxMz=${configuratorParams.maxMoveZ}, mnMz=${configuratorParams.minMoveZ}, mxX=${configuratorParams.maxXSize}, mxY=${configuratorParams.maxYSize}`;
 
-    addLog('info', `POST /api/compute sending parameters: { ${logParams} }`);
+    addLog('info', `POST /grasshopper sending array payload for web-configurator.gh`);
 
     try {
-      const response = await fetch('/api/compute', {
+      let targetUrl = import.meta.env.VITE_RHINO_COMPUTE_URL || 'https://ruckus-ominous-delicious.ngrok-free.dev';
+      
+      // Ensure we hit the grasshopper endpoint if using external Rhino Compute
+      if (targetUrl.startsWith('http')) {
+        // Strip trailing slash if present, then append '/grasshopper' if it's not already there
+        targetUrl = targetUrl.replace(/\/$/, '');
+        if (!targetUrl.endsWith('/grasshopper') && !targetUrl.endsWith('/api/compute')) {
+          targetUrl += '/grasshopper';
+        }
+      } else {
+        targetUrl = '/api/compute';
+      }
+
+      const isExternal = targetUrl.startsWith('http');
+      
+      const response = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: payloadString
       });
 
       if (!response.ok) {
+        if (response.status === 404 && isExternal) {
+          throw new Error(`Connected to ngrok, but Rhino.Compute threw a 404 Not Found at '/api/compute'. Rhino expects '/grasshopper' with a valid .gh script!`);
+        }
         throw new Error(`Rhino.Compute Proxy returned ${response.status}`);
       }
 
@@ -180,7 +189,16 @@ export default function App() {
       );
     } catch (err: any) {
       console.error(err);
-      addLog('error', `Grasshopper computation failed: ${err?.message || err}`);
+      
+      let errorMessage = err?.message || err;
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        errorMessage = `Failed to fetch. This usually means either: 
+1. The Vercel Env Var isn't prefixed with "VITE_" so it's missing.
+2. CORS failed because you hit the ngrok URL but Rhino Compute doesn't know the '/api/compute' path. 
+(Real Rhino expects '/grasshopper' and 'rhino3dm.js' integration)`;
+      }
+      
+      addLog('error', `Grasshopper computation failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -194,7 +212,7 @@ export default function App() {
     }, 45); // highly responsive 45ms debounce
 
     return () => clearTimeout(delayDebounce);
-  }, [modelType, analysisType, sunAngle, facadeParams, canopyParams, bridgeParams]);
+  }, [sunAngle, configuratorParams]);
 
   // Terminal logging helper
   const addLog = (level: 'info' | 'success' | 'warning' | 'error', message: string) => {
@@ -208,13 +226,7 @@ export default function App() {
 
   const getActiveSlidersMap = (): Record<string, number> => {
     const res: Record<string, number> = { sunAngle };
-    if (modelType === 'facade') {
-      Object.entries(facadeParams).forEach(([k, v]) => res[k] = v as number);
-    } else if (modelType === 'canopy') {
-      Object.entries(canopyParams).forEach(([k, v]) => res[k] = v as number);
-    } else {
-      Object.entries(bridgeParams).forEach(([k, v]) => res[k] = v as number);
-    }
+    Object.entries(configuratorParams).forEach(([k, v]) => res[k] = v as number);
     return res;
   };
 
@@ -289,16 +301,10 @@ export default function App() {
             className="w-full shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-zinc-900/30 p-4 overflow-visible lg:overflow-auto h-auto lg:h-full select-none"
           >
             <ParamsSidebar
-              modelType={modelType}
-              setModelType={setModelType}
               analysisType={analysisType}
               setAnalysisType={setAnalysisType}
-              facadeParams={facadeParams}
-              setFacadeParams={setFacadeParams}
-              canopyParams={canopyParams}
-              setCanopyParams={setCanopyParams}
-              bridgeParams={bridgeParams}
-              setBridgeParams={setBridgeParams}
+              configuratorParams={configuratorParams}
+              setConfiguratorParams={setConfiguratorParams}
               sunAngle={sunAngle}
               setSunAngle={setSunAngle}
             />
@@ -327,7 +333,7 @@ export default function App() {
               lineData={apiResponse ? apiResponse.data.lines : undefined}
               sunAngle={sunAngle}
               loading={loading}
-              modelType={modelType}
+              modelType={'configurator' as any}
               analysisType={analysisType}
               isViewportExpanded={isViewportExpanded}
               onToggleViewportExpanded={() => setIsViewportExpanded(!isViewportExpanded)}
@@ -412,7 +418,7 @@ export default function App() {
             <div className="flex-1 overflow-hidden" id="developer_tab_contents">
               {activeTab === 'graph' && (
                 <GrasshopperGraph
-                  modelType={modelType}
+                  modelType={'configurator' as any}
                   params={getActiveSlidersMap()}
                   telemetry={apiResponse ? apiResponse.data.telemetry.nodes : undefined}
                   solverTimeMs={apiResponse ? apiResponse.solverTimeMs : 0}
@@ -429,7 +435,7 @@ export default function App() {
               {activeTab === 'perf' && (
                 <TelemetryChart
                   telemetry={apiResponse ? apiResponse.data.telemetry.nodes : undefined}
-                  modelType={modelType}
+                  modelType={'configurator' as any}
                   solverTimeMs={apiResponse ? apiResponse.solverTimeMs : 0}
                 />
               )}

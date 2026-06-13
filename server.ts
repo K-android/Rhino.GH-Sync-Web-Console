@@ -20,7 +20,18 @@ async function startServer() {
   // Handles POST and GET requests representing the Grasshopper slider mapping exchange
   app.post('/api/compute', (req, res) => {
     try {
-      const { modelType, analysisType, facadeParams, canopyParams, bridgeParams, sunAngle } = req.body;
+      const { modelType, analysisType, facadeParams, canopyParams, bridgeParams, sunAngle, pointer, values } = req.body;
+
+      if (pointer && values) {
+         // Fake integration response format if they hit local server instead of ngrok
+         return res.json({
+           solverTimeMs: 12,
+           data: {
+             mesh: { vertices: [0,0,0, 10,0,0, 5,10,0], indices: [0,1,2], colors: [0.5,0.5,0.5] },
+             telemetry: { nodes: [] }
+           }
+         });
+      }
 
       if (!modelType) {
         return res.status(400).json({ error: 'Missing parameter: modelType' });

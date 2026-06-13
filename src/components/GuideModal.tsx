@@ -83,7 +83,7 @@ export default function GuideModal({ isOpen, onClose }: GuideModalProps) {
                 Configure CORS & Endpoints
               </h3>
               <p>
-                In your Rhino.Compute server configuration, assure CORS is enabled to explicitly allow requests from your Vercel URL. Then, in your Vercel Project Settings, add any environment variables pointing to your compute server URL (e.g., <code>RHINO_COMPUTE_URL</code>) and your API token.
+                In your Rhino.Compute server configuration, assure CORS is enabled to explicitly allow requests from your Vercel URL. Then, in your Vercel Project Settings, add an environment variable pointing to your ngrok or compute server URL. It must be named exactly <code>VITE_RHINO_COMPUTE_URL</code> (the <code>VITE_</code> prefix is required for the browser to read it).
               </p>
             </div>
           </div>

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type ModelType = 'facade' | 'canopy' | 'bridge';
+export type ModelType = 'facade' | 'canopy' | 'bridge' | 'configurator';
 
 export type AnalysisType = 'solar' | 'stress' | 'cost';
 
@@ -33,12 +33,25 @@ export interface BridgeParams {
   archTwist: number;
 }
 
+export interface ConfiguratorParams {
+  rotationAngle: number;
+  offsetDistance: number;
+  populationCount: number;
+  maxExtrudeZ: number;
+  minExtrudeZ: number;
+  maxMoveZ: number;
+  minMoveZ: number;
+  maxXSize: number;
+  maxYSize: number;
+}
+
 export interface ComputeRequest {
   modelType: ModelType;
   analysisType: AnalysisType;
   facadeParams?: FacadeParams;
   canopyParams?: CanopyParams;
   bridgeParams?: BridgeParams;
+  configuratorParams?: ConfiguratorParams;
   sunAngle?: number; // 0 to 360 degrees
 }
 

@@ -127,11 +127,11 @@ export default function GrasshopperGraph({
                 <div className="flex items-center gap-1.5">
                   <Cpu className="text-emerald-400 w-3 h-3" />
                   <span className="text-[10px] font-mono font-bold text-zinc-200 uppercase tracking-tight">
-                    {modelType === 'facade' ? 'Sine Evaluator' : modelType === 'canopy' ? 'Hex Grid Dome' : 'Parabola Deck'}
+                    {modelType === 'facade' ? 'Sine Evaluator' : modelType === 'canopy' ? 'Hex Grid Dome' : modelType === 'bridge' ? 'Parabola Deck' : 'Custom Configurator Engine'}
                   </span>
                 </div>
                 <span className="text-[8px] font-mono bg-emerald-500/20 text-emerald-300 px-1 py-0.5 rounded">
-                  {getTiming(modelType === 'facade' ? 'sine_waves' : modelType === 'canopy' ? 'hex_grid' : 'arch_weaver', 3)}
+                  {getTiming(modelType === 'facade' ? 'sine_waves' : modelType === 'canopy' ? 'hex_grid' : modelType === 'bridge' ? 'arch_weaver' : 'web_configurator', 3)}
                 </span>
               </div>
               
@@ -183,7 +183,7 @@ export default function GrasshopperGraph({
               <div className="bg-sky-950/40 border-b border-zinc-850 p-1.5 flex justify-between items-center">
                 <span className="text-[9px] font-mono font-bold text-sky-400 uppercase">Mesh Loft / Cap</span>
                 <span className="text-[8px] font-mono bg-sky-500/10 text-sky-300 px-1 rounded">
-                  {getTiming(modelType === 'facade' ? 'panelizer' : modelType === 'canopy' ? 'mesh_cap' : 'deck_generator', 4)}
+                  {getTiming(modelType === 'facade' ? 'panelizer' : modelType === 'canopy' ? 'mesh_cap' : modelType === 'bridge' ? 'deck_generator' : 'mesh_output', 4)}
                 </span>
               </div>
               <div className="p-2 text-[9px] font-mono text-zinc-500 flex justify-between">

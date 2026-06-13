@@ -14,7 +14,7 @@ interface ThreeCanvasProps {
   lineData: ComputeResponseLine[] | undefined;
   sunAngle: number;
   loading: boolean;
-  modelType: 'facade' | 'canopy' | 'bridge';
+  modelType: 'facade' | 'canopy' | 'bridge' | 'configurator';
   analysisType: 'solar' | 'stress' | 'cost';
   isViewportExpanded?: boolean;
   onToggleViewportExpanded?: () => void;
