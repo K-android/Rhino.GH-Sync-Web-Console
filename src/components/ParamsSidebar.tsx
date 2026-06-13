@@ -35,10 +35,28 @@ export default function ParamsSidebar({
     <div className="w-full flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-5 overflow-auto custom-scrollbar h-full gap-5 select-none" id="params_sidebar_controls">
       {/* 2. DYNAMIC GRASSHOPPER SLIDERS */}
       <div className="flex flex-col gap-3">
-        <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest font-bold flex items-center gap-1.5 border-b border-zinc-800 pb-1.5 mb-1.5">
-          <Sliders className="w-3.5 h-3.5 text-sky-400" />
-          Web Configurator Sliders
-        </label>
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5 mb-1.5">
+          <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest font-bold flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5 text-sky-400" />
+            Web Configurator Sliders
+          </label>
+          {ioSchema.length > 0 && (
+            <button
+              onClick={() => {
+                const defaults: Record<string, number> = {};
+                ioSchema.forEach(inputEl => {
+                  defaults[inputEl.Name] = inputEl.Default !== undefined ? Number(inputEl.Default) : 0;
+                });
+                setDynamicParams(defaults);
+              }}
+              className="text-[10px] font-mono px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 active:bg-sky-500 active:text-black hover:text-zinc-100 text-zinc-400 rounded transition border border-zinc-700/50 cursor-pointer"
+              title="Reset sliders to their default values"
+              id="btn_reset_defaults"
+            >
+              Reset Defaults
+            </button>
+          )}
+        </div>
 
         <div className="space-y-4 font-mono text-xs">
           {ioSchema.length === 0 && (
