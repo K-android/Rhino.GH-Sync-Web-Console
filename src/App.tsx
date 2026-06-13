@@ -193,7 +193,7 @@ export default function App() {
           "{ 0; }": [
             { 
               type: "System.Double", 
-              data: value 
+              data: JSON.stringify(value)
             }
           ] 
         }
