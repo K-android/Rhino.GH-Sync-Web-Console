@@ -84,7 +84,7 @@ export default function App() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ 
-            pointer: "C:/Users/User/Desktop/web-configurator.gh",
+            pointer: "C:/Users/User/OneDrive/Desktop/web-configurator.gh",
             externalUrl
           })
         });
@@ -186,7 +186,7 @@ export default function App() {
   const triggerCompute = async (isManual = false) => {
     // Collect active params for Rhino Compute Grasshopper endpoint
     const payload = {
-      pointer: "C:/Users/User/Desktop/web-configurator.gh", // specific to the user's setup
+      pointer: "C:/Users/User/OneDrive/Desktop/web-configurator.gh", // specific to the user's setup
       values: Object.entries(dynamicParams).map(([key, value]) => ({
         ParamName: key,
         InnerTree: { "{0}": [{ data: value }] }
