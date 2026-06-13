@@ -479,17 +479,17 @@ export function solveGeometry(
     
     // Default params if not provided
     const dp = params.dynamicParams || {};
-    const popCount = dp.PopulationCount || 10;
-    const offsetDist = dp.OffsetDistance || 2;
-    const minXSize = 1;
-    const maxXSize = dp.MaxXSize || 10;
-    const minYSize = 1;
-    const maxYSize = dp.MaxYSize || 10;
-    const minExtrudeZ = dp.MinExtrudeZ || 2;
-    const maxExtrudeZ = dp.MaxExtrudeZ || 10;
-    const minMoveZ = dp.MinMoveZ || 0;
-    const maxMoveZ = dp.MaxMoveZ || 5;
-    const rotationAngle = dp.RotationAngle || 45;
+    const popCount = dp.PopulationCount !== undefined ? dp.PopulationCount : 10;
+    const offsetDist = dp.OffsetDistance !== undefined ? dp.OffsetDistance : 500;
+    const minXSize = 100;
+    const maxXSize = dp.MaxXSize !== undefined ? dp.MaxXSize : 3000;
+    const minYSize = 100;
+    const maxYSize = dp.MaxYSize !== undefined ? dp.MaxYSize : 4000;
+    const minExtrudeZ = dp.MinExtrudeZ !== undefined ? dp.MinExtrudeZ : 3000;
+    const maxExtrudeZ = dp.MaxExtrudeZ !== undefined ? dp.MaxExtrudeZ : 6000;
+    const minMoveZ = dp.MinMoveZ !== undefined ? dp.MinMoveZ : 0;
+    const maxMoveZ = dp.MaxMoveZ !== undefined ? dp.MaxMoveZ : 5000;
+    const rotationAngle = dp.RotationAngle !== undefined ? dp.RotationAngle : 45;
     
     timings.push({ id: 'hops_inputs', name: 'Dynamic Params Parsing', timeMs: 0.5 });
     
