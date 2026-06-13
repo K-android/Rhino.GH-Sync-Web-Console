@@ -10,6 +10,8 @@ import GrasshopperGraph from './components/GrasshopperGraph';
 import CodeViewer from './components/CodeViewer';
 import TelemetryChart from './components/TelemetryChart';
 import GuideModal from './components/GuideModal';
+import { solveGeometry } from '../server/solver';
+
 import {
   ModelType,
   AnalysisType,
@@ -106,14 +108,21 @@ export default function App() {
       } catch(err: any) {
         // Fallback to our dummy server just in case ngrok fails
         try {
-          const response = await fetch('/api/io', { 
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const data = await response.json();
-          if (!data || !data.Inputs) throw new Error('Invalid data format from /api/io');
+          addLog('warning', `ngrok unreachable or CORS failed, falling back to local mathematically simulated schema`);
+          // Note: using hardcoded data directly to support static hosting (like Vercel) where there is no local Express backend `/api/io` route
+          const data = {
+             Inputs: [
+               { Name: 'RotationAngle', Default: 45, Minimum: -180, Maximum: 180 },
+               { Name: 'OffsetDistance', Default: 2, Minimum: -10, Maximum: 10 },
+               { Name: 'PopulationCount', Default: 10, Minimum: 1, Maximum: 100 },
+               { Name: 'MaxExtrudeZ', Default: 10, Minimum: 0.1, Maximum: 50 },
+               { Name: 'MinExtrudeZ', Default: 2, Minimum: 0.1, Maximum: 50 },
+               { Name: 'MaxMoveZ', Default: 5, Minimum: -20, Maximum: 20 },
+               { Name: 'MinMoveZ', Default: 0, Minimum: -20, Maximum: 20 },
+               { Name: 'MaxXSize', Default: 10, Minimum: 0.1, Maximum: 50 },
+               { Name: 'MaxYSize', Default: 10, Minimum: 0.1, Maximum: 50 }
+            ]
+          };
           setIoSchema(data.Inputs);
           const initialParams: Record<string, number> = {};
           data.Inputs.forEach((input: any) => {
@@ -122,7 +131,6 @@ export default function App() {
           });
           setDynamicParams(initialParams);
           setSchemaFetched(true);
-          addLog('warning', `ngrok unreachable or CORS failed, falling back to local simulation backend schema`);
         } catch (innerErr: any) {
           addLog('error', `Failed to retrieve dynamic Grasshopper schema IO: ${innerErr.message || innerErr}`);
         }
@@ -213,39 +221,47 @@ export default function App() {
 
       const isExternal = targetUrl.startsWith('http');
       
-      let response;
+      let resData: any = null;
+      let durationSum = 0;
+      let response: Response | undefined;
+      
       try {
-        response = await fetch(targetUrl, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
-          },
-          body: payloadString
-        });
-      } catch (externalErr: any) {
         if (isExternal) {
-          addLog('warning', `Failed to connect to ${targetUrl}, attempting local simulation fallback...`);
-          targetUrl = '/api/compute';
           response = await fetch(targetUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
             body: payloadString
           });
+          
+          if (!response.ok) {
+            if (response.status === 404) {
+              throw new Error(`Connected to external compute, but threw 404 Not Found at '${targetUrl}'.`);
+            }
+            throw new Error(`External Rhino.Compute Proxy returned ${response.status}`);
+          }
+          resData = await response.json();
+          durationSum = performance.now() - startRequest;
         } else {
-          throw externalErr;
+          // Force fallback to local direct execution to support Vercel deployments
+          throw new Error('Local Express backend assumed unavailable, using pure client-side simulation');
         }
+      } catch (externalErr: any) {
+        addLog('warning', `Compute fetch failed (${externalErr.message || externalErr}), falling back to purely local client-side mathematically simulated Hops graph.`);
+        
+        // Execute the pure math geometric solver directly in Vercel client browser rather than POST to non-existent /api/compute endpoint
+        resData = solveGeometry(
+          'configurator' as any,
+          analysisType,
+          {
+            sunAngle,
+            dynamicParams
+          }
+        );
+        durationSum = performance.now() - startRequest;
       }
-
-      if (!response.ok) {
-        if (response.status === 404 && isExternal) {
-          throw new Error(`Connected to ngrok, but Rhino.Compute threw a 404 Not Found at '/api/compute'. Rhino expects '/grasshopper' with a valid .gh script!`);
-        }
-        throw new Error(`Rhino.Compute Proxy returned ${response.status}`);
-      }
-
-      const resData = (await response.json()) as any;
-      const durationSum = performance.now() - startRequest;
 
       setApiResponse(resData);
       

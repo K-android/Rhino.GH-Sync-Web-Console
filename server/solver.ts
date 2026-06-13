@@ -44,13 +44,14 @@ function getColorForValue(val: number): [number, number, number] {
 }
 
 export function solveGeometry(
-  modelType: ModelType,
+  modelType: string,
   analysisType: AnalysisType,
   params: {
     facade?: FacadeParams;
     canopy?: CanopyParams;
     bridge?: BridgeParams;
     sunAngle?: number;
+    dynamicParams?: Record<string, number>;
   }
 ): ComputeResponse {
   const start = Date.now();
@@ -472,6 +473,121 @@ export function solveGeometry(
 
     timings.push({ id: 'cable_networks', name: 'Tension Cable Network Solver', timeMs: 1.0 });
     timings.push({ id: 'deflection_load', name: 'Bending Moment Finite Element Simulator', timeMs: 2.1 });
+  } else if (modelType === 'configurator') {
+    graphName = 'web_configurator.gh';
+    const tStart = Date.now();
+    
+    // Default params if not provided
+    const dp = params.dynamicParams || {};
+    const popCount = dp.PopulationCount || 10;
+    const offsetDist = dp.OffsetDistance || 2;
+    const minXSize = 1;
+    const maxXSize = dp.MaxXSize || 10;
+    const minYSize = 1;
+    const maxYSize = dp.MaxYSize || 10;
+    const minExtrudeZ = dp.MinExtrudeZ || 2;
+    const maxExtrudeZ = dp.MaxExtrudeZ || 10;
+    const minMoveZ = dp.MinMoveZ || 0;
+    const maxMoveZ = dp.MaxMoveZ || 5;
+    const rotationAngle = dp.RotationAngle || 45;
+    
+    timings.push({ id: 'hops_inputs', name: 'Dynamic Params Parsing', timeMs: 0.5 });
+    
+    let vIdx = 0;
+    
+    // Generate simple towers in a circle
+    const angleStep = (2 * Math.PI) / popCount;
+    for (let c = 0; c < popCount; c++) {
+        const theta = c * angleStep;
+        
+        // Base center location
+        const rad = popCount * offsetDist * 0.15; // expand radius as popCount grows
+        const cx = Math.cos(theta) * rad;
+        const cy = Math.sin(theta) * rad;
+        
+        // Random dimensions (pseudo-random based on index)
+        const pseudoRand = (val: number) => Math.abs(Math.sin(val * 12.9898 + 78.233)) * 43758.5453 % 1;
+        const xSize = minXSize + (maxXSize - minXSize) * pseudoRand(c + 1);
+        const ySize = minYSize + (maxYSize - minYSize) * pseudoRand(c + 2);
+        
+        const extrudeZ = minExtrudeZ + (maxExtrudeZ - minExtrudeZ) * pseudoRand(c + 3);
+        const moveZ = minMoveZ + (maxMoveZ - minMoveZ) * pseudoRand(c + 4);
+        
+        // Box origin
+        const startZ = moveZ;
+        const endZ = startZ + extrudeZ;
+        
+        // Rotation (twist around its local Z axis)
+        const twistRad = rotationAngle * Math.PI / 180 + pseudoRand(c) * 0.5;
+        
+        // 8 points for a box
+        const xHalf = xSize / 2;
+        const yHalf = ySize / 2;
+        
+        const signs = [
+            [-1, 1],
+            [1, 1],
+            [1, -1],
+            [-1, -1]
+        ];
+        
+        const localVerts: [number, number, number][] = [];
+        
+        for (const iz of [startZ, endZ]) {
+            for (const [sx, sy] of signs) {
+                const lx = sx * xHalf;
+                const ly = sy * yHalf;
+                
+                // Rotated
+                const rx = lx * Math.cos(twistRad) - ly * Math.sin(twistRad);
+                const ry = lx * Math.sin(twistRad) + ly * Math.cos(twistRad);
+                
+                localVerts.push([cx + rx, cy + ry, iz]);
+            }
+        }
+        
+        // Push vertices
+        localVerts.forEach(v => vertices.push(...v));
+        
+        // Compute color
+        // color by height
+        const colorFactor = extrudeZ / (maxExtrudeZ || 1);
+        const [rgbR, rgbG, rgbB] = getColorForValue(colorFactor * 1.5 - 0.2); // stretch value
+        
+        for (let j = 0; j < 8; j++) {
+            colors.push(rgbR, rgbG, rgbB);
+        }
+        
+        // Faces
+        const f = vIdx;
+        const panelIndices = [
+            // Bottom face
+            f + 3, f + 2, f + 1,
+            f + 3, f + 1, f + 0,
+            // Top face
+            f + 4, f + 5, f + 6,
+            f + 4, f + 6, f + 7,
+            // Front face
+            f + 0, f + 1, f + 5,
+            f + 0, f + 5, f + 4,
+            // Right face
+            f + 1, f + 2, f + 6,
+            f + 1, f + 6, f + 5,
+            // Back face
+            f + 2, f + 3, f + 7,
+            f + 2, f + 7, f + 6,
+            // Left face
+            f + 3, f + 0, f + 4,
+            f + 3, f + 4, f + 7
+        ];
+        indices.push(...panelIndices);
+        vIdx += 8;
+        
+        // Add a vertical core line
+        lines.push({ start: [cx, cy, startZ], end: [cx, cy, endZ], color: '#cbd5e1' });
+    }
+    
+    timings.push({ id: 'polar_array_extrude', name: 'Polar Array & Z Extrusion', timeMs: (Date.now() - tStart) * 0.8 });
   }
 
   const duration = Date.now() - start;
@@ -486,7 +602,8 @@ export function solveGeometry(
         sunAngle,
         ...(modelType === 'facade' ? { facadeParams: params.facade } : {}),
         ...(modelType === 'canopy' ? { canopyParams: params.canopy } : {}),
-        ...(modelType === 'bridge' ? { bridgeParams: params.bridge } : {})
+        ...(modelType === 'bridge' ? { bridgeParams: params.bridge } : {}),
+        ...(modelType === 'configurator' ? { dynamicParams: params.dynamicParams } : {})
       }
     },
     grasshopperGraph: graphName,
