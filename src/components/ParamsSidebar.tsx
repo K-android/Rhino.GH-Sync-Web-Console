@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import React from 'react';
 import { AnalysisType } from '../types';
 import { HelpCircle, Sun, Sliders, Activity, Info } from 'lucide-react';
 
