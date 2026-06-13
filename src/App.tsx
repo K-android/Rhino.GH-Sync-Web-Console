@@ -188,15 +188,15 @@ export default function App() {
     const payload = {
       pointer: "C:/Users/User/OneDrive/Desktop/web-configurator.gh", // specific to the user's setup
       values: [
-        { ParamName: "RotationAngle", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.RotationAngle as any) }] } },
-        { ParamName: "OffsetDistance", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.OffsetDistance as any) }] } },
-        { ParamName: "PopulationCount", InnerTree: { "{0}": [{ data: parseInt(dynamicParams.PopulationCount as any) }] } },
-        { ParamName: "MinExtrudeZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MinExtrudeZ as any) }] } },
-        { ParamName: "MaxExtrudeZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxExtrudeZ as any) }] } },
-        { ParamName: "MaxMoveZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxMoveZ as any) }] } },
-        { ParamName: "MinMoveZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MinMoveZ as any) }] } },
-        { ParamName: "MaxXSize", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxXSize as any) }] } },
-        { ParamName: "MaxYSize", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxYSize as any) }] } }
+        { ParamName: "RotationAngle", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.RotationAngle as any) }] } },
+        { ParamName: "OffsetDistance", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.OffsetDistance as any) }] } },
+        { ParamName: "PopulationCount", InnerTree: { "{0}": [{ type: "System.Int32", data: parseInt(dynamicParams.PopulationCount as any) }] } },
+        { ParamName: "MinExtrudeZ", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.MinExtrudeZ as any) }] } },
+        { ParamName: "MaxExtrudeZ", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.MaxExtrudeZ as any) }] } },
+        { ParamName: "MaxMoveZ", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.MaxMoveZ as any) }] } },
+        { ParamName: "MinMoveZ", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.MinMoveZ as any) }] } },
+        { ParamName: "MaxXSize", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.MaxXSize as any) }] } },
+        { ParamName: "MaxYSize", InnerTree: { "{0}": [{ type: "System.Double", data: parseFloat(dynamicParams.MaxYSize as any) }] } }
       ]
     };
 
