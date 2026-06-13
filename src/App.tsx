@@ -187,17 +187,17 @@ export default function App() {
     // Collect active params for Rhino Compute Grasshopper endpoint
     const payload = {
       pointer: "C:/Users/User/OneDrive/Desktop/web-configurator.gh", // specific to the user's setup
-      values: Object.entries(dynamicParams).map(([key, value]) => ({
-        ParamName: key,
-        InnerTree: { 
-          "{0}": [
-            { 
-              type: Number.isInteger(value) ? "System.Int32" : "System.Double", 
-              data: value 
-            }
-          ] 
-        }
-      }))
+      values: [
+        { ParamName: "RotationAngle", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.RotationAngle as any) }] } },
+        { ParamName: "OffsetDistance", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.OffsetDistance as any) }] } },
+        { ParamName: "PopulationCount", InnerTree: { "{0}": [{ data: parseInt(dynamicParams.PopulationCount as any) }] } },
+        { ParamName: "MinExtrudeZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MinExtrudeZ as any) }] } },
+        { ParamName: "MaxExtrudeZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxExtrudeZ as any) }] } },
+        { ParamName: "MaxMoveZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxMoveZ as any) }] } },
+        { ParamName: "MinMoveZ", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MinMoveZ as any) }] } },
+        { ParamName: "MaxXSize", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxXSize as any) }] } },
+        { ParamName: "MaxYSize", InnerTree: { "{0}": [{ data: parseFloat(dynamicParams.MaxYSize as any) }] } }
+      ]
     };
 
     const payloadString = JSON.stringify(payload);
